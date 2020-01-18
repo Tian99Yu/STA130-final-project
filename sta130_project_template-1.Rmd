@@ -1,0 +1,447 @@
+---
+title: "Final Project"
+author:
+  - "TUT0104, 104D1"
+  - "David Pham (1005349053)"
+  - "Eric Yuan (1003053526)"
+  - "George Zhang (1004749604)"
+  - "Tian Yu (1004750655)"
+date: "December 6, 2018"
+subtitle: "A statistical analysis on internet usage"
+output:
+  ioslides_presentation: default
+  widescreen: yes
+---
+
+<!-- Import all .csv files -->
+```{r setup, include=FALSE, echo=FALSE}
+library(tidyverse)
+path <- "https://raw.githubusercontent.com/ntaback/UofT_STA130/master/Fall2018/Finalproject/"
+
+democracyindex2017 <- read_csv(paste0(path,"democracyindex2017.csv"))
+education_cia2017 <- read_csv(paste0(path,"education_cia2017.csv"))
+gdpppp_cia2017 <- read_csv(paste0(path,"gdpppp_cia2017.csv"))
+lifeexpect_cia2017 <- read_csv(paste0(path,"lifeexpect_cia2017.csv"))
+healthexpend_cia2017 <- read_csv(paste0(path,"healthexpend_cia2017.csv"))
+internetusers_cia2017 <- read_csv(paste0(path,"internetusers_cia2017.csv"))
+telephonelines_cia2017 <- read_csv(paste0(path,"telephonelines_cia2017.csv"))
+population_cia2017 <- read_csv(paste0(path,"population_cia2017.csv"))
+world_regions <- read_csv(paste0(path,"world_regions.csv"))
+hdi_2017 <- read_csv("hdi2017.csv")
+```
+
+<!-- ## here is the proportion of countries using the internet(any questions, ask Tian) -->
+```{r, echo=FALSE}
+full_internet <- inner_join(x = internetusers_cia2017, y = population_cia2017, by = "Country")
+proportion <-full_internet%>%
+  mutate(proportion = `INTERNET USERS`/POPULATION)
+```
+<!--
+# A Section Heading on its own page
+
+## A heading that starts on a new page
+
+This document shows a few basics on making slides with R markdown.
+
+To produce the slides, Knit to HMTL (ioslides).
+
+(You can also knit to PDF if you have LaTeX installed on your computer.)
+
+
+---
+
+Three dashes starts a new page when it is not started by a new header.
+
+---
+
+### This is a heading that doesn't start a new page
+
+You can make text **bold** or in *italics*.
+
+To make bullet points, start the points after a blank line:
+ 
+- point one
+- another point
+
+
+---
+
+Include some R output
+
+```{r}
+ggplot(cars, aes(x=speed, y=dist)) + geom_point()
+```
+
+---
+
+Include the output without showing the code and R messages (which is what you want for your poster presentation).  This R code chunk also changes the size of the plot.
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.height=3}
+ggplot(cars, aes(x=speed, y=dist)) + geom_point()
+```
+
+This plot shows that there is a positive relationship between distance and speed.
+
+## Read more
+
+There is more information on R markdown on the course website at [https://ntaback.github.io/UofT_STA130/Rmarkdownforclassreports.html](https://ntaback.github.io/UofT_STA130/Rmarkdownforclassreports.html)
+
+For more on creating an `ioslides` presentation see [https://rmarkdown.rstudio.com/ioslides_presentation_format.html](https://rmarkdown.rstudio.com/ioslides_presentation_format.html)
+
+# Headings you should include in your project
+-->
+## Introduction
+
+The prominent usage of technology and explosion of wireless communication has dramatically improved our world. However, there exists a global digital divide that includes massive disparities regarding the connection speed, quality and accessibility.
+
+In our project, we use three assumptions (same time, same people and correct dataset) to define internet usage, which is the quotient of the number of internet user over the country's population to describe internet usage. We also used statistical methods to find the impact of democracy, education, economy, and health on internet usage.
+
+<!--
+Include here a few sentences to introduce the problem and provide context. You might want to briefly summarize the data in words (what is the data and what is it used for). You can present the questions you are investigating here.
+-->
+
+## Objectives
+
+Examining the relationship between our definition of internet usage and four specific factors:
+
+1. Democracy
+2. Education
+3. Economy
+4. Health
+
+Is there more to this?
+
+- Establish a general conclusion on what may impact the proportion of internet usage.
+
+## Statistical Methods
+
+- Boxplot
+- Classification Tree
+- Data Wrangling
+- Linear Regression
+- Scatterplot
+
+<!--
+Describe here what you have done to the data without presenting any results (output). If you want to indicate variables by symbols or variable names, define them here. 
+-->
+
+## Internet usage around the world
+<!-- 2. Do different regions of the world have different internet usage? -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+continent <- inner_join(x = proportion, y = world_regions, by = 'Country')
+new <- continent%>%
+  filter(Region  == 'Africa' | Region == 'Arab States' | Region == 'Asia & Pacific' | Region == 'Europe'| Region == 'North America' | Region == 'South/Latin America'   )
+new %>%filter(is.na(Region) == FALSE)%>%
+  ggplot(aes(x = Region, y = proportion)) +
+  geom_boxplot() + 
+  ggtitle("                                 Different Regions' Internet Use" )+ 
+  labs(y="Internet Usage", x = "Region")
+```
+
+## Internet usage around the world
+```{r, fig.cap="Internet usage around the world.", echo=FALSE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(maps)
+library(purrr)
+new_data <-proportion%>%
+  rename('Internet Use' = 'proportion')
+world <- map_data("world") 
+
+internetusers_cia2017 <- new_data
+
+iu <- internetusers_cia2017 %>% rename(region = Country) 
+
+iu$region[4] <- "USA" # to match world map data
+
+iu <- semi_join(iu, world, by = "region") #only keep countries according to world map data
+
+# code below is modified from 
+# https://stackoverflow.com/questions/29614972/ggplot-us-state-map-colors-are-fine-polygons-jagged-r
+gg <- ggplot()
+
+gg <- gg + geom_map(
+  data = world,
+  map = world,
+  aes(x = long, y = lat, map_id = region),
+  fill = "#ffffff",
+  color = "#ffffff",
+  size = 0.20
+  )
+gg <- gg + geom_map(
+  data = iu,
+  map = world,
+  aes(fill = `Internet Use`, map_id = region),
+  color = "#ffffff",
+  size = 0.15
+  )
+  
+  gg <- gg + scale_fill_continuous(low = 'thistle2', high = 'darkblue',
+  guide = 'colorbar')
+  
+print(gg + labs(y="", x = ""))
+```
+
+## Democracy
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library (ggplot2)
+democracy_proportion <- inner_join(x = democracyindex2017, y = proportion, by = "Country")
+#David's R Chunk
+# Graph 1: Democracy
+
+# Putting the proportion variable into the 'democracyindex' dataset
+
+
+# Looking at the slope and y-intercept of the regression line
+regression_line <- lm(as.numeric(proportion) ~ as.numeric(Score), data = democracy_proportion)
+regression_line_summ <- summary(regression_line)
+#y = 0.077x + 0.0651?
+
+#coefficient of determination
+#~0.349 a weak-moderate positive relationship
+
+# The Graph!
+ggplot(aes(x = as.numeric(Score), y = as.numeric(proportion), colour = Category), data = democracy_proportion) +
+  geom_point() +
+  geom_abline(intercept = 0.06509, slope = 0.07705, color = "red") +
+  labs(title = "Relationship between Democracy Index and Internet Usage Proportion", x = "Score", y = "Internet Usage")
+```
+
+## Democracy
+
+<small style="font-size:.9em">
+Analyzing the relationship between democracy index and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): Score in 2017 (definition of democracy according to the dataset)
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+democracy_proportion <- inner_join(x = democracyindex2017, y = proportion, by = "Country")
+
+david_graph1 <- democracy_proportion %>%
+  select(Country, Score, Category, proportion)
+glimpse(david_graph1)
+```
+</small>
+
+## Democracy
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#David's R Chunk Part 2
+# Classification Tree - Democracy Index
+
+library(rpart)
+library(partykit)
+ww <- democracy_proportion %>%
+  mutate(Score = as.numeric(Score))
+
+tree <- rpart(Category ~ Score, data = ww)
+plot(as.party(tree), type = "simple", gp = gpar(cex = 0.8))
+```
+
+## Education
+
+<small style="font-size:.9em">
+Analyzing the relationship between percentage of GDP allocated towards education and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): Percentage of a government's GDP allocated towards education
+<!-- Data was collected from an assorted range of years -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+education_cia2017 <- inner_join(x = education_cia2017, y = proportion, by = "Country") %>%
+  rename(percent_gdp = `(% OF GDP)`)
+library (ggplot2)
+
+david_graph2 <- education_cia2017 %>%
+  select(Country, percent_gdp, proportion)
+glimpse(david_graph2)
+```
+</small>
+
+## Education
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#David's R Chunk Part 3
+# Graph 2: % of GDP spent on Education
+
+education_cia2017 %>%
+  ggplot(aes(x = as.numeric(percent_gdp), y = as.numeric(proportion))) +
+  geom_smooth(method = "lm", se = FALSE, colour = "red") +
+  labs(title = "Relationship between % of GDP spent on Education and Proportion of Internet Usage", x = "Percentage of GDP Allocated Towards Education", y = "Internet Usage") + 
+  geom_point()
+
+#look at equation of regression 
+view_eq2 <- lm(as.numeric(proportion) ~ as.numeric(percent_gdp), data = education_cia2017)
+view_eq2_summ <- summary(view_eq2)
+# y = 0.00514x + 0.484
+
+#coefficient of determination
+#~0.0015 indicates a very poor fit.
+```
+
+## Economy
+
+<small style="font-size:.9em">
+Analyzing the relationship between GDP - PER CAPITA (PPP)  and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): The log of a country's (GDP - PER CAPITA (PPP))
+<!-- Data was collected from an assorted range of years -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+gdp <- inner_join(x = gdpppp_cia2017, y = proportion, by = "Country")
+gdp$`GDP - PER CAPITA (PPP)` <- substr(gdp$`GDP - PER CAPITA (PPP)`, 2, 1000)
+gdp$`GDP - PER CAPITA (PPP)` <- as.numeric(gsub(",", "", gdp$`GDP - PER CAPITA (PPP)`))
+gdp <- gdp %>% mutate(`log (GDP - PER CAPITA (PPP))` = log(`GDP - PER CAPITA (PPP)`))
+
+economy_1 <- gdp %>%
+  select(Country, `log (GDP - PER CAPITA (PPP))`, proportion)
+glimpse(economy_1)
+```
+</small>
+
+## Economy
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(gdp)+
+aes(x = `log (GDP - PER CAPITA (PPP))`, y = proportion)+
+geom_smooth(method = "lm", se = FALSE)+
+geom_point() +
+labs(y="Internet Usage")
+```
+
+## Economy
+
+<small style="font-size:.9em">
+Analyzing the relationship between the GDP in $ that is spent on education and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): The dollar amount of (GDP - PER CAPITA (PPP)) that is spent on Education
+<!-- Data was collected from an assorted range of years -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+education_cia2017 <- read_csv(paste0(path,"education_cia2017.csv"))
+gdp <- inner_join(x = education_cia2017, y = gdpppp_cia2017, by = "Country")
+gdp$`GDP - PER CAPITA (PPP)` <- substr(gdp$`GDP - PER CAPITA (PPP)`, 2, 1000)
+gdp$`GDP - PER CAPITA (PPP)` <- as.numeric(gsub(",", "", gdp$`GDP - PER CAPITA (PPP)`))
+
+gdp_ed <- gdp %>% mutate(`GDP in $ spent on Education` = `GDP - PER CAPITA (PPP)` * `(% OF GDP)` * 0.01)
+graph4 <- inner_join(x = gdp_ed, y = proportion, by = "Country")
+
+graph4 <- graph4 %>% mutate(`log (GDP in $ spent on Education)` = log(`GDP in $ spent on Education`))
+
+economy_2 <- graph4 %>%
+  select(Country, `GDP in $ spent on Education`, proportion)
+glimpse(economy_2)
+```
+</small>
+
+## Economy
+
+We use the hypothesis test to test if there is a relationship between the internet use and the logarithm of the money spent on education per person.
+
+The null hypothesis is the coefficient of the regression line is zero, while the alternative hypothesis is the coefficient of the line is non-zero.
+
+## Economy
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+ggplot(data = graph4) +
+aes(x = `log (GDP in $ spent on Education)`, y = proportion) +
+geom_point() +
+geom_smooth(method = "lm", se = FALSE) +
+labs(y="Internet Usage")
+```
+
+## Economy
+
+After the test, we got the p value is ‘4.926093e-56’ which is extremely small
+
+Thus we have strong evidence against the null hypothesis and say there is actually an relationship between the internet use and the logarithm of the money spent on education
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+summary(lm(`log (GDP in $ spent on Education)`~proportion, graph4))$coefficients
+```
+
+## Economy
+
+<small style="font-size:.9em">
+Analyzing the relationship between the GDP in $ that is spent on health and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): The dollar amount of (GDP - PER CAPITA (PPP)) that is spent on health
+<!-- Data was collected from an assorted range of years -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+updated_health <- inner_join(x = gdpppp_cia2017, y = healthexpend_cia2017, by = "Country")
+updated_health$`GDP - PER CAPITA (PPP)` <- substr(updated_health$`GDP - PER CAPITA (PPP)`, 2, 1000)
+updated_health$`GDP - PER CAPITA (PPP)` <- as.numeric(gsub(",", "", updated_health$`GDP - PER CAPITA (PPP)`))
+updated_health <- updated_health %>% mutate(`GDP in $ spent on Health` = `GDP - PER CAPITA (PPP)` * `(% OF GDP)`)
+graph6 <- inner_join(x = updated_health, y = proportion, by = "Country")
+graph6 <- graph6 %>% mutate(`log (GDP in $ spent on Health)` = log(`GDP in $ spent on Health`))
+
+economy_3 <- graph6 %>%
+  select(Country, `log (GDP in $ spent on Health)`, proportion)
+glimpse(economy_3)
+```
+</small>
+
+## Economy
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = graph6) +
+ aes(x = `log (GDP in $ spent on Health)`, y = proportion) +
+ geom_point() +
+ geom_smooth(method = "lm", se = FALSE) +
+ labs(y="Internet Usage")
+```
+
+## Health
+
+<small style="font-size:.9em">
+Analyzing the relationship between the health expectancy and internet usage
+
+- Dependent variable (y): Proportion of Internet Usage from 2016-2017
+- Independent variable (x): Health Expectancy of a country
+<!-- Data was collected from an assorted range of years -->
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+graph5 <- inner_join(x = lifeexpect_cia2017, y = proportion, by = "Country")
+
+health_1 <- graph5 %>%
+  select(Country, `(YEARS)`, proportion)
+glimpse(health_1)
+```
+</small>
+
+## Health
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+
+ggplot(data = graph5) +
+ aes(x = `(YEARS)`, y = proportion) +
+ geom_point() +
+ geom_smooth(method = "lm", se = FALSE) +
+ labs(y="Internet Usage", x="Life Expectancy")
+```
+
+<!--
+Present the main results here, in order of importance, related to the questions asked. You might use tables or graphs, or other ways to summarize your results.
+-->
+
+## HDI
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+needed_hdi <- inner_join(x= proportion, y = hdi_2017, by = 'Country')
+needed_hdi%>%
+  ggplot()+
+  aes(x = `Human Development Index (HDI)`, y = proportion)+
+  geom_point()+
+  geom_smooth(method = 'lm', se = FALSE)+
+  labs(y="Internet Usage", x = "Human Development Index")+
+  ggtitle("                                    Different Regions' HDI" )
+```
+
+## Conclusion
+
+In general, the more that people in a country spend, the larger the proportion of internet users there are in a country. Health and democracy both have a positive linear relationship with internet usage.  The higher percent of people spend on education does not imply a larger proportion of internet users.
+<!--
+Give your main conclusions here. Follow the order of questions you presented. 
+
+Here you can also mention any additional considerations, concerns, or issues you might have. For example, if the results were unexpected, you can discuss this and perhaps offer possible explanations.
+-->
+
+
+
